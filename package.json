@@ -5,7 +5,6 @@
   "description": "macOS menu bar app for storing links and copying quickly",
   "main": "electron/main.js",
   "scripts": {
-    "build:icon:mac": "sh scripts/build-mac-icon.sh",
     "build:main": "tsc -p tsconfig.main.json && rm -rf electron/assets && mkdir -p electron/assets && cp src/assets/icon.png electron/assets/icon.png",
     "build:renderer": "vite build",
     "build": "npm run build:main && npm run build:renderer",
@@ -14,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "start": "npm run build && electron .",
-    "build-mac": "npm run build:icon:mac && npm run build && electron-builder --mac && sh scripts/set-dmg-file-icon.sh",
+    "build-mac": "npm run build && electron-builder --mac && sh scripts/set-dmg-file-icon.sh src/assets/AppIcon.icns",
     "notarize:mac": "sh scripts/notarize-dmg.sh",
     "release:mac": "npm run build-mac && npm run notarize:mac",
     "release:github": "sh scripts/publish-github-release.sh"
@@ -78,14 +77,14 @@
     ],
     "mac": {
       "category": "public.app-category.productivity",
-      "icon": "build/icon.icns",
+      "icon": "src/assets/AppIcon.icns",
       "target": [
         "dmg",
         "zip"
       ]
     },
     "dmg": {
-      "icon": "build/icon.icns"
+      "icon": "src/assets/AppIcon.icns"
     },
     "artifactName": "${productName}-${version}-${arch}.${ext}"
   }
