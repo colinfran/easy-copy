@@ -1,6 +1,6 @@
 # EasyCopy
 
-  <img src="./src/assets/icon.svg" style="height: 100px; width: 100px;" />
+  <img src="./src/assets/AppIcon.png"/>
 
 
 EasyCopy is a macOS menu bar Electron app for saving links and copying them quickly.
