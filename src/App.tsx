@@ -19,16 +19,16 @@ export const App = (): JSX.Element => {
   } = useLinks()
 
   return (
-    <main className="h-screen overflow-hidden bg-slate-100 px-4 py-4 text-slate-900">
-      <section className="mx-auto flex h-full w-full max-w-md flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
+    <main className="h-screen overflow-hidden bg-slate-100 px-4 py-4 text-slate-900 dark:bg-zinc-900 dark:text-zinc-100">
+      <section className="mx-auto flex h-full w-full max-w-md flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-soft dark:border-zinc-700 dark:bg-zinc-800">
         <header className="mb-4">
           <h1 className="text-xl font-semibold">EasyCopy</h1>
-          <p className="mt-1 text-sm text-slate-500">Save links and manage them quickly.</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-zinc-400">Save links and manage them quickly.</p>
         </header>
 
         <AddLinkForm onInputStart={clearError} onSubmit={addLink} />
 
-        {error ? <p className="mt-2 text-xs text-red-700">{error}</p> : null}
+        {error ? <p className="mt-2 text-xs text-red-700 dark:text-red-400">{error}</p> : null}
 
         <LinksList
           editState={editState}

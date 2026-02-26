@@ -13,6 +13,13 @@ body,
 body {
   font-family: 'SF Pro Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
   overflow: hidden;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    color-scheme: dark;
+  }
 }
 
 @layer utilities {

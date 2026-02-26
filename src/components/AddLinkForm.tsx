@@ -23,7 +23,7 @@ export const AddLinkForm = ({ onSubmit, onInputStart }: AddLinkFormProps): JSX.E
   return (
     <form className="space-y-2" onSubmit={handleSubmit}>
       <input
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ring-blue-500 transition focus:ring-2"
+        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-blue-500 transition focus:ring-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
         maxLength={80}
         placeholder="Name (e.g. Product docs)"
         value={name}
@@ -34,7 +34,7 @@ export const AddLinkForm = ({ onSubmit, onInputStart }: AddLinkFormProps): JSX.E
         }}
       />
       <input
-        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ring-blue-500 transition focus:ring-2"
+        className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none ring-blue-500 transition focus:ring-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
         placeholder="https://example.com"
         value={url}
         required

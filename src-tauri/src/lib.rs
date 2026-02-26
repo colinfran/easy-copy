@@ -221,6 +221,15 @@ pub fn run() {
                 let _ = app.set_dock_visibility(false);
             }
 
+            if let Some(main_window) = app.get_webview_window("main") {
+                let window_handle = main_window.clone();
+                main_window.on_window_event(move |event| {
+                    if matches!(event, tauri::WindowEvent::Focused(false)) {
+                        let _ = window_handle.hide();
+                    }
+                });
+            }
+
             let app_handle = app.handle();
             let file_path = get_links_file_path(&app_handle);
             let links = load_links_from_file(&file_path);

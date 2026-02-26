@@ -51,7 +51,7 @@ const LinkRow = ({
 
   return (
     <li
-      className={`rounded-xl border border-slate-200 bg-white p-3 ${isDragging ? "opacity-60" : "opacity-100"}`}
+      className={`rounded-xl border border-slate-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-800 ${isDragging ? "opacity-60" : "opacity-100"}`}
       ref={(node): void => {
         setNodeRef(node)
       }}
@@ -60,7 +60,7 @@ const LinkRow = ({
       {activeEdit ? (
         <div className="space-y-2">
           <input
-            className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm outline-none ring-blue-500 transition focus:ring-2"
+            className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none ring-blue-500 transition focus:ring-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
             value={activeEdit.name}
             onChange={(event): void =>
               onEditStateChange((current) =>
@@ -74,7 +74,7 @@ const LinkRow = ({
             }
           />
           <input
-            className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-sm outline-none ring-blue-500 transition focus:ring-2"
+            className="w-full rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none ring-blue-500 transition focus:ring-2 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100"
             value={activeEdit.url}
             onChange={(event): void =>
               onEditStateChange((current) =>
@@ -98,14 +98,14 @@ const LinkRow = ({
           >
             {item.name}
           </p>
-          <p className="mt-1 break-all text-xs text-slate-500">{item.url}</p>
+          <p className="mt-1 break-all text-xs text-slate-500 dark:text-zinc-400">{item.url}</p>
         </>
       )}
 
       <div className="mt-3 flex gap-2">
         {activeEdit ? (
           <button
-            className="w-full rounded-lg border border-blue-300 px-2 py-1.5 text-sm font-medium text-blue-700 transition hover:bg-blue-50"
+            className="w-full rounded-lg border border-blue-300 px-2 py-1.5 text-sm font-medium text-blue-700 transition hover:bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-zinc-700"
             type="button"
             onClick={(): Promise<void> => onEdit(item)}
           >
@@ -114,14 +114,14 @@ const LinkRow = ({
         ) : (
           <>
             <button
-              className="flex-1 rounded-lg border border-blue-300 px-2 py-1.5 text-sm font-medium text-blue-700 transition hover:bg-blue-50"
+              className="flex-1 rounded-lg border border-blue-300 px-2 py-1.5 text-sm font-medium text-blue-700 transition hover:bg-blue-50 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-zinc-700"
               type="button"
               onClick={(): Promise<void> => onEdit(item)}
             >
               Edit
             </button>
             <button
-              className="flex-1 rounded-lg border border-red-200 px-2 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50"
+              className="flex-1 rounded-lg border border-red-200 px-2 py-1.5 text-sm font-medium text-red-700 transition hover:bg-red-50 dark:border-red-800 dark:text-red-300 dark:hover:bg-zinc-700"
               type="button"
               onClick={(): Promise<void> => onDelete(item.id)}
             >
@@ -175,7 +175,7 @@ export const LinksList = ({
       <SortableContext items={links.map((item) => item.id)} strategy={verticalListSortingStrategy}>
         <ul className="mt-4 grid min-h-0 flex-1 gap-2 overflow-y-auto pr-1">
           {!hasLinks ? (
-            <li className="rounded-lg bg-slate-50 p-3 text-center text-sm text-slate-500">
+            <li className="rounded-lg bg-slate-50 p-3 text-center text-sm text-slate-500 dark:bg-zinc-700 dark:text-zinc-400">
               No links saved yet.
             </li>
           ) : null}
