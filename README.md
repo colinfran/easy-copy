@@ -7,6 +7,8 @@ EasyCopy is a macOS menu bar Tauri app for saving links and copying them quickly
 
 I came up with this idea because I was constantly having to go to my browser search bar and type in the first few characters of URLs just to trigger autocomplete so I could copy/paste a URL that I needed.
 
+This app was originally built with Electron, then migrated to Tauri to dramatically reduce the app size from about 300MB down to about 9MB!
+
 ## Download and install (recommended)
 
 Download the latest `.dmg` from GitHub Releases and install EasyCopy:
