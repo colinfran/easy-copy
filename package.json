@@ -21,7 +21,7 @@
     "notarize:mac": "sh scripts/notarize-dmg.sh",
     "release:mac": "npm run tauri:build:mac",
     "release:github": "sh scripts/publish-github-release.sh",
-    "release:all": "npm run release:mac && npm run release:github"
+    "release:all": "npm run release:mac && npm run notarize:mac && npm run release:github"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
