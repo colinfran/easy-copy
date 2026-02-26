@@ -10,10 +10,16 @@ body,
   height: 100%;
 }
 
+#root {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
 body {
   font-family: 'SF Pro Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
   overflow: hidden;
   color-scheme: light;
+  background: transparent;
 }
 
 @media (prefers-color-scheme: dark) {
