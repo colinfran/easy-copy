@@ -4,6 +4,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State, Wry};
+use tauri::path::BaseDirectory;
 use tauri::menu::MenuBuilder;
 use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
 use uuid::Uuid;
@@ -243,9 +244,15 @@ pub fn run() {
             // Build tray menu
             let menu = build_tray_menu(&app_handle, &links)?;
             
+            let tray_icon = app.path().resolve("icons/icon.png", BaseDirectory::Resource)
+                .ok()
+                .and_then(|path| tauri::image::Image::from_path(path).ok())
+                .or_else(|| app.default_window_icon().cloned())
+                .expect("failed to load tray icon");
+
             // Create tray icon
             let _tray = TrayIconBuilder::with_id("main")
-                .icon(app.default_window_icon().unwrap().clone())
+                .icon(tray_icon)
                 .icon_as_template(false)
                 .menu(&menu)
                 .show_menu_on_left_click(true)

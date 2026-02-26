@@ -36,8 +36,7 @@
     "active": true,
     "targets": "all",
     "icon": [
-      "icons/AppIcon.icns",
-      "icons/icon.png"
+      "icons/App-Icon.icns"
     ],
     "category": "Productivity",
     "macOS": {
