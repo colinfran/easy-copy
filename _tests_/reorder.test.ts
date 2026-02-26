@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { moveItemByIndex } from "../src/renderer/utils/reorder"
-import { type LinkItem } from "../src/renderer/types/link"
-import { v4 as uuidv4 } from "uuid"
+import { moveItemByIndex } from "../src/utils/reorder"
+import { type LinkItem } from "../src/types/link"
 
 const sample: LinkItem[] = [
-  { id: uuidv4(), name: "One", url: "https://one.test" },
-  { id: uuidv4(), name: "Two", url: "https://two.test" },
-  { id: uuidv4(), name: "Three", url: "https://three.test" },
+  { id: "a", name: "One", url: "https://one.test" },
+  { id: "b", name: "Two", url: "https://two.test" },
+  { id: "c", name: "Three", url: "https://three.test" },
 ]
 
 describe("moveItemByIndex", () => {

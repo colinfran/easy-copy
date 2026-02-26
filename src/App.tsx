@@ -26,21 +26,23 @@ export const App = (): JSX.Element => {
           <p className="mt-1 text-sm text-slate-500">Save links and manage them quickly.</p>
         </header>
 
-        <AddLinkForm onSubmit={addLink} onInputStart={clearError} />
+        <AddLinkForm onInputStart={clearError} onSubmit={addLink} />
 
         {error ? <p className="mt-2 text-xs text-red-700">{error}</p> : null}
 
         <LinksList
-          links={links}
-          hasLinks={hasLinks}
           editState={editState}
-          onEditStateChange={setEditState}
+          hasLinks={hasLinks}
+          links={links}
+          onDelete={deleteLink}
           onEdit={editLink}
+          onEditStateChange={setEditState}
           onMove={moveLink}
           onPersistOrder={persistOrder}
-          onDelete={deleteLink}
         />
       </section>
     </main>
   )
 }
+
+export default App

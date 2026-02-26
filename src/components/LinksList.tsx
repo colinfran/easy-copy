@@ -1,13 +1,15 @@
-import { useRef, type JSX } from "react"
-import { useDrag, useDrop } from "react-dnd"
+import { type JSX } from "react"
+import {
+  DndContext,
+  type DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core"
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable"
+import { CSS } from "@dnd-kit/utilities"
 import { type EditState, type LinkItem } from "../types/link"
-
-const DND_TYPE = "easycopy-link-item"
-
-type DragItem = {
-  id: string
-  index: number
-}
 
 type LinksListProps = {
   links: LinkItem[]
@@ -21,93 +23,39 @@ type LinksListProps = {
 }
 
 type LinkRowProps = {
-  index: number
   item: LinkItem
   editState: EditState | null
   onEditStateChange: (updater: (current: EditState | null) => EditState | null) => void
   onEdit: (item: LinkItem) => Promise<void>
-  onMove: (dragIndex: number, hoverIndex: number) => void
-  onPersistOrder: () => Promise<void>
   onDelete: (id: string) => Promise<void>
 }
 
 const LinkRow = ({
-  index,
   item,
   editState,
   onEditStateChange,
   onEdit,
-  onMove,
-  onPersistOrder,
   onDelete,
 }: LinkRowProps): JSX.Element => {
-  const rowRef = useRef<HTMLLIElement | null>(null)
   const activeEdit = editState?.id === item.id ? editState : null
 
-  const [{ isDragging }, drag] = useDrag(
-    () => ({
-      type: DND_TYPE,
-      item: { id: item.id, index },
-      end: async (_dragItem, monitor) => {
-        if (monitor.didDrop()) {
-          await onPersistOrder()
-        }
-      },
-      collect: (monitor) => ({
-        isDragging: monitor.isDragging(),
-      }),
-    }),
-    [item.id, index, onPersistOrder],
-  )
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: item.id,
+    disabled: Boolean(activeEdit),
+  })
 
-  const [, drop] = useDrop(
-    () => ({
-      accept: DND_TYPE,
-      hover: (dragged: DragItem, monitor) => {
-        if (!rowRef.current) {
-          return
-        }
-
-        const dragIndex = dragged.index
-        const hoverIndex = index
-
-        if (dragIndex === hoverIndex) {
-          return
-        }
-
-        const hoverBoundingRect = rowRef.current.getBoundingClientRect()
-        const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2
-        const clientOffset = monitor.getClientOffset()
-
-        if (!clientOffset) {
-          return
-        }
-
-        const hoverClientY = clientOffset.y - hoverBoundingRect.top
-
-        // Only move when cursor crosses half of hovered row to prevent jitter.
-        if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-          return
-        }
-
-        if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-          return
-        }
-
-        onMove(dragIndex, hoverIndex)
-        dragged.index = hoverIndex
-      },
-      drop: () => ({ moved: true }),
-    }),
-    [index, onMove],
-  )
-
-  drag(drop(rowRef))
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
 
   return (
     <li
-      ref={rowRef}
       className={`rounded-xl border border-slate-200 bg-white p-3 ${isDragging ? "opacity-60" : "opacity-100"}`}
+      ref={(node): void => {
+        setNodeRef(node)
+      }}
+      style={style}
     >
       {activeEdit ? (
         <div className="space-y-2">
@@ -142,7 +90,12 @@ const LinkRow = ({
         </div>
       ) : (
         <>
-          <p className="cursor-move text-sm font-semibold" title="Drag to reorder">
+          <p
+            className="cursor-move text-sm font-semibold"
+            title="Drag to reorder"
+            {...attributes}
+            {...listeners}
+          >
             {item.name}
           </p>
           <p className="mt-1 break-all text-xs text-slate-500">{item.url}</p>
@@ -191,25 +144,54 @@ export const LinksList = ({
   onPersistOrder,
   onDelete,
 }: LinksListProps): JSX.Element => {
-  return (
-    <ul className="mt-4 grid min-h-0 flex-1 gap-2 overflow-y-auto pr-1">
-      {!hasLinks ? (
-        <li className="rounded-lg bg-slate-50 p-3 text-center text-sm text-slate-500">No links saved yet.</li>
-      ) : null}
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 4,
+      },
+    }),
+  )
 
-      {links.map((item, index) => (
-        <LinkRow
-          key={item.id}
-          index={index}
-          item={item}
-          editState={editState}
-          onEditStateChange={onEditStateChange}
-          onEdit={onEdit}
-          onMove={onMove}
-          onPersistOrder={onPersistOrder}
-          onDelete={onDelete}
-        />
-      ))}
-    </ul>
+  const handleDragEnd = (event: DragEndEvent): void => {
+    const { active, over } = event
+
+    if (!over || active.id === over.id) {
+      return
+    }
+
+    const dragIndex = links.findIndex((item) => item.id === String(active.id))
+    const hoverIndex = links.findIndex((item) => item.id === String(over.id))
+
+    if (dragIndex < 0 || hoverIndex < 0) {
+      return
+    }
+
+    onMove(dragIndex, hoverIndex)
+    void onPersistOrder()
+  }
+
+  return (
+    <DndContext collisionDetection={closestCenter} sensors={sensors} onDragEnd={handleDragEnd}>
+      <SortableContext items={links.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+        <ul className="mt-4 grid min-h-0 flex-1 gap-2 overflow-y-auto pr-1">
+          {!hasLinks ? (
+            <li className="rounded-lg bg-slate-50 p-3 text-center text-sm text-slate-500">
+              No links saved yet.
+            </li>
+          ) : null}
+
+          {links.map((item) => (
+            <LinkRow
+              editState={editState}
+              item={item}
+              key={item.id}
+              onDelete={onDelete}
+              onEdit={onEdit}
+              onEditStateChange={onEditStateChange}
+            />
+          ))}
+        </ul>
+      </SortableContext>
+    </DndContext>
   )
 }

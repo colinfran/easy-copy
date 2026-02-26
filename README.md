@@ -1,11 +1,11 @@
 # EasyCopy
 
-<img src="./src/assets/AppIcon.png"/>
+<img src="./src-tauri/icons/icon.svg" width="96"/>
 
 
-EasyCopy is a macOS menu bar Electron app for saving links and copying them quickly.
+EasyCopy is a macOS menu bar Tauri app for saving links and copying them quickly.
 
-I came up with this idea because I was constantly having to go to my browser search bar and type in the first few characters of URLs just to trigger autocomplete so I could copy/paste a url that I needed.
+I came up with this idea because I was constantly having to go to my browser search bar and type in the first few characters of URLs just to trigger autocomplete so I could copy/paste a URL that I needed.
 
 ## Download and install (recommended)
 
@@ -24,10 +24,10 @@ npm install
 2. Start the app:
 
 ```bash
-npm start
+npm run tauri:dev
 ```
 
-`npm start` builds Electron TypeScript (`main` + `preload`) and the React/Tailwind renderer before launching Electron.
+`npm run tauri:dev` runs the React/Tailwind frontend and launches the Tauri app shell.
 
 ## Build it yourself (macOS)
 
@@ -37,22 +37,24 @@ npm start
 npm install
 ```
 
-2. Build a distributable `.dmg` and `.zip`:
+2. Build a distributable `.dmg`:
 
 ```bash
-npm run build-mac
+npm run tauri:build:mac
 ```
 
-Output files are written to `dist/`.
+Output files are written to `src-tauri/target/release/bundle/`.
 
 ## Features
 
 - macOS menu bar app named **EasyCopy**
 - Copy a link with one click
 - Add named links
+- Edit links
 - Delete links
-- Persistent storage in your local Electron user data folder
+- Reorder links with drag and drop
+- Persistent storage in your local app data folder
 - Quick-copy entries in the tray context menu
-- TypeScript-based Electron code (`main` + `preload`)
+- Rust + Tauri backend
 - React renderer
 - Tailwind CSS styling

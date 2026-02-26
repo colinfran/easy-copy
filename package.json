@@ -1,49 +1,42 @@
 {
-  "name": "easy-copy",
+  "name": "easy-copy-tauri",
   "productName": "EasyCopy",
+  "private": true,
   "version": "1.0.0",
-  "description": "macOS menu bar app for storing links and copying quickly",
-  "main": "electron/main.js",
+  "type": "module",
   "scripts": {
-    "build:main": "tsc -p tsconfig.main.json && rm -rf electron/assets && mkdir -p electron/assets && cp src/assets/icon.png electron/assets/icon.png",
-    "build:renderer": "vite build",
-    "build": "npm run build:main && npm run build:renderer",
+    "dev": "vite",
+    "build": "tsc && vite build",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
     "test:watch": "vitest",
-    "start": "npm run build && electron .",
-    "build-mac": "npm run build && electron-builder --mac && sh scripts/set-dmg-file-icon.sh src/assets/AppIcon.icns",
+    "test:rust": "cd src-tauri && cargo test",
+    "test:all": "npm test && npm run test:rust",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:build:mac": "tauri build --bundles dmg",
     "notarize:mac": "sh scripts/notarize-dmg.sh",
-    "release:mac": "npm run build-mac && npm run notarize:mac",
+    "release:mac": "npm run tauri:build:mac",
     "release:github": "sh scripts/publish-github-release.sh"
   },
-  "keywords": [
-    "electron",
-    "menubar",
-    "macos",
-    "clipboard"
-  ],
-  "author": "",
-  "license": "MIT",
   "dependencies": {
-    "lucide": "^0.575.0",
-    "lucide-react": "^0.575.0",
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
-    "react-dom": "^18.3.1",
-    "uuid": "^13.0.0"
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-opener": "^2"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
-    "@types/node": "^22.13.9",
-    "@types/react": "^18.3.12",
+    "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
-    "@vitejs/plugin-react": "^4.3.4",
-    "autoprefixer": "^10.4.20",
-    "electron": "40.6.0",
-    "electron-builder": "^24.13.3",
     "eslint": "^9.20.1",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
@@ -52,40 +45,15 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-unused-imports": "^4.1.4",
     "globals": "^15.15.0",
-    "postcss": "^8.4.49",
+    "@vitejs/plugin-react": "^4.3.4",
     "prettier": "^3.5.2",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.3",
     "typescript-eslint": "^8.24.0",
-    "vite": "^5.4.11",
-    "vitest": "^2.1.8"
-  },
-  "build": {
-    "appId": "com.easycopy.app",
-    "productName": "EasyCopy",
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "**/*",
-      "!src/**/*",
-      "!_tests_/**/*",
-      "!dist/**/*",
-      "!build/**/*",
-      "!*.log",
-      "!README.md"
-    ],
-    "mac": {
-      "category": "public.app-category.productivity",
-      "icon": "src/assets/AppIcon.icns",
-      "target": [
-        "dmg",
-        "zip"
-      ]
-    },
-    "dmg": {
-      "icon": "src/assets/AppIcon.icns"
-    },
-    "artifactName": "${productName}-${version}-${arch}.${ext}"
+    "typescript": "~5.6.2",
+    "vite": "^6.0.3",
+    "vitest": "^2.1.8",
+    "@tauri-apps/cli": "^2",
+    "tailwindcss": "^3.4.17",
+    "postcss": "^8.4.49",
+    "autoprefixer": "^10.4.20"
   }
 }

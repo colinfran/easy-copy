@@ -14,3 +14,9 @@ body {
   font-family: 'SF Pro Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
   overflow: hidden;
 }
+
+@layer utilities {
+  .shadow-soft {
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
+  }
+}

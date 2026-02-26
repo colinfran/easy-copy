@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { isValidUrl, normalizeUrl } from "../src/renderer/utils/url"
+import { isValidUrl, normalizeUrl } from "../src/utils/url"
 
 describe("url utils", () => {
   it("adds https when protocol is missing", (): void => {

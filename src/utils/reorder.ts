@@ -1,6 +1,10 @@
 import { type LinkItem } from "../types/link"
 
-export const moveItemByIndex = (items: LinkItem[], dragIndex: number, hoverIndex: number): LinkItem[] => {
+export const moveItemByIndex = (
+  items: LinkItem[],
+  dragIndex: number,
+  hoverIndex: number,
+): LinkItem[] => {
   if (dragIndex < 0 || hoverIndex < 0 || dragIndex >= items.length || hoverIndex >= items.length) {
     return items
   }

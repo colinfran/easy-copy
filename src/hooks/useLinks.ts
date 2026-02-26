@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react"
+import { invoke } from "@tauri-apps/api/core"
 import { type EditState, type LinkItem } from "../types/link"
 import { moveItemByIndex } from "../utils/reorder"
 import { isValidUrl, normalizeUrl } from "../utils/url"
@@ -30,7 +31,7 @@ export const useLinks = (): UseLinksResult => {
   useEffect(() => {
     let isMounted = true
 
-    window.easyCopy.listLinks().then((items) => {
+    invoke<LinkItem[]>("list_links").then((items) => {
       if (isMounted) {
         setLinks(items)
       }
@@ -64,7 +65,7 @@ export const useLinks = (): UseLinksResult => {
       return
     }
 
-    const next = await window.easyCopy.addLink({
+    const next = await invoke<LinkItem[]>("add_link", {
       name: trimmedName,
       url: normalizedUrl,
     })
@@ -99,7 +100,7 @@ export const useLinks = (): UseLinksResult => {
       return
     }
 
-    const next = await window.easyCopy.updateLink({
+    const next = await invoke<LinkItem[]>("update_link", {
       id: item.id,
       name: trimmedName,
       url: normalizedUrl,
@@ -119,12 +120,12 @@ export const useLinks = (): UseLinksResult => {
 
   const persistOrder = async (): Promise<void> => {
     const orderedIds = linksRef.current.map((item) => item.id)
-    const next = await window.easyCopy.reorderLinks(orderedIds)
+    const next = await invoke<LinkItem[]>("reorder_links", { orderedIds })
     setLinks(next)
   }
 
   const deleteLink = async (id: string): Promise<void> => {
-    const next = await window.easyCopy.deleteLink(id)
+    const next = await invoke<LinkItem[]>("delete_link", { id })
     setLinks(next)
 
     if (editState?.id === id) {

@@ -2,19 +2,19 @@
 set -eu
 
 if ! command -v gh >/dev/null 2>&1; then
-  echo "GitHub CLI (gh) is required. Install it first: brew install gh"
+  echo "GitHub CLI (gh) is required. Install: brew install gh"
   exit 1
 fi
 
 if ! gh auth status >/dev/null 2>&1; then
-  echo "You are not authenticated with GitHub CLI. Run: gh auth login"
+  echo "Authenticate GitHub CLI first: gh auth login"
   exit 1
 fi
 
 VERSION="$(node -p "require('./package.json').version")"
 TAG="${RELEASE_TAG:-v$VERSION}"
 TITLE="${RELEASE_TITLE:-EasyCopy v$VERSION}"
-NOTES="${RELEASE_NOTES:-Signed and notarized macOS release.}"
+NOTES="${RELEASE_NOTES:-Signed and notarized macOS Tauri release.}"
 
 if ! git rev-parse --verify "$TAG" >/dev/null 2>&1; then
   echo "Creating local tag: $TAG"
@@ -26,17 +26,15 @@ if ! git ls-remote --tags origin "refs/tags/$TAG" | grep -q "$TAG"; then
   git push origin "$TAG"
 fi
 
-DMG_FILES=$(find dist -maxdepth 1 -type f -name "EasyCopy-$VERSION-*.dmg" | sort)
-ZIP_FILES=$(find dist -maxdepth 1 -type f -name "EasyCopy-$VERSION-*.zip" | sort)
+DMG_FILES="$(find src-tauri/target/release/bundle/dmg -maxdepth 1 -type f -name "*.dmg" | sort || true)"
 
-if [ -z "$DMG_FILES" ] && [ -z "$ZIP_FILES" ]; then
-  echo "No release artifacts found for version $VERSION in dist/."
-  echo "Build first with: npm run release:mac"
+if [ -z "$DMG_FILES" ]; then
+  echo "No DMG artifacts found. Build first with: npm run release:mac"
   exit 1
 fi
 
 ASSETS=""
-for file in $DMG_FILES $ZIP_FILES; do
+for file in $DMG_FILES; do
   ASSETS="$ASSETS \"$file\""
 done
 

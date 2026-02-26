@@ -27,21 +27,21 @@ export const AddLinkForm = ({ onSubmit, onInputStart }: AddLinkFormProps): JSX.E
         maxLength={80}
         placeholder="Name (e.g. Product docs)"
         value={name}
+        required
         onChange={(event): void => {
           onInputStart()
           setName(event.target.value)
         }}
-        required
       />
       <input
         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none ring-blue-500 transition focus:ring-2"
         placeholder="https://example.com"
         value={url}
+        required
         onChange={(event): void => {
           onInputStart()
           setUrl(event.target.value)
         }}
-        required
       />
       <button
         className="w-full rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700"

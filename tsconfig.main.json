@@ -1,8 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "outDir": "electron",
-    "rootDir": "src"
-  },
-  "include": ["src/main.ts", "src/preload.ts"]
-}
