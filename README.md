@@ -1,6 +1,6 @@
 # EasyCopy
 
-<img src="./docs/AppIcon.png" width="140px"/>
+<img src="./docs/screenshot.png" width="400px" style="border-radius: 12px;"/>
 
 
 EasyCopy is a macOS menu bar Tauri app for saving links and copying them quickly.
