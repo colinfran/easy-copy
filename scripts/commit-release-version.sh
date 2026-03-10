@@ -10,7 +10,7 @@ if [ -z "$CURRENT_BRANCH" ]; then
   exit 1
 fi
 
-ALLOWED_CHANGES="package.json src-tauri/tauri.conf.json"
+ALLOWED_CHANGES="package.json package-lock.json npm-shrinkwrap.json src-tauri/tauri.conf.json"
 CHANGED_PATHS="$(git status --porcelain | awk '{print $2}')"
 
 for path in $CHANGED_PATHS; do
@@ -26,6 +26,14 @@ for path in $CHANGED_PATHS; do
 done
 
 git add package.json src-tauri/tauri.conf.json
+
+if [ -f package-lock.json ]; then
+  git add package-lock.json
+fi
+
+if [ -f npm-shrinkwrap.json ]; then
+  git add npm-shrinkwrap.json
+fi
 
 if git diff --cached --quiet; then
   echo "No version file changes to commit."
