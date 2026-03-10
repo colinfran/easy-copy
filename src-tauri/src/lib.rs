@@ -1,6 +1,7 @@
 use arboard::Clipboard;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::Duration;
@@ -16,6 +17,8 @@ use uuid::Uuid;
 
 const UPDATE_CHECK_INTERVAL: Duration = Duration::from_secs(3 * 60 * 60);
 const DEVELOPER_SHORTCUT: &str = "CommandOrControl+Alt+Shift+D";
+const LOG_FILE_NAME: &str = "easycopy.log";
+const LOG_SNIPPET_MAX_CHARS: usize = 3500;
 
 #[derive(Debug, Clone)]
 struct DevMenuState {
@@ -49,6 +52,46 @@ fn get_links_file_path(app_handle: &AppHandle) -> PathBuf {
         .expect("failed to resolve app data directory");
     fs::create_dir_all(&app_data_dir).ok();
     app_data_dir.join("links.json")
+}
+
+fn get_log_file_path(app_handle: &AppHandle) -> PathBuf {
+    let app_data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .expect("failed to resolve app data directory");
+    fs::create_dir_all(&app_data_dir).ok();
+    app_data_dir.join(LOG_FILE_NAME)
+}
+
+fn log_event(app_handle: &AppHandle, message: &str) {
+    let path = get_log_file_path(app_handle);
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+
+    if let Ok(mut file) = fs::OpenOptions::new().create(true).append(true).open(path) {
+        let _ = writeln!(file, "[{}] {}", timestamp, message);
+    }
+}
+
+fn read_log_tail(app_handle: &AppHandle) -> String {
+    let path = get_log_file_path(app_handle);
+    let content = match fs::read_to_string(path) {
+        Ok(c) => c,
+        Err(_) => return "(no log entries yet)".to_string(),
+    };
+
+    if content.len() <= LOG_SNIPPET_MAX_CHARS {
+        return content;
+    }
+
+    let start = content.len() - LOG_SNIPPET_MAX_CHARS;
+    let slice = &content[start..];
+    match slice.find('\n') {
+        Some(pos) => slice[pos + 1..].to_string(),
+        None => slice.to_string(),
+    }
 }
 
 fn load_links_from_file(file_path: &PathBuf) -> Vec<LinkItem> {
@@ -133,8 +176,30 @@ fn refresh_tray_menu(app: &AppHandle, links: &[LinkItem], show_developer_info: b
 fn show_developer_info_dialog(app: &AppHandle) {
     let version = app.package_info().version.to_string();
     let issues_url = "https://github.com/colinfran/easy-copy/issues";
+    let issue_title = format!("Bug report: EasyCopy {}", version);
+    let log_path = get_log_file_path(app);
+    let log_excerpt = read_log_tail(app);
+    let diagnostics = format!(
+        "- App version: {}\n- App identifier: {}\n- Platform: {}\n- Architecture: {}\n- Log file: {}",
+        version,
+        app.config().identifier,
+        std::env::consts::OS,
+        std::env::consts::ARCH,
+        log_path.display(),
+    );
+    let issue_body = format!(
+        "## Describe the issue\n\nPlease describe what happened.\n\n## Diagnostics\n\n{}\n\n## Recent log excerpt\n\n```\n{}\n```\n\n## Steps to reproduce\n\n1. \n2. \n3. \n\n## Expected behavior\n\n\n## Actual behavior\n\n",
+        diagnostics,
+        log_excerpt,
+    );
+    let prefilled_issue_url = format!(
+        "{}/new?title={}&body={}",
+        issues_url,
+        urlencoding::encode(&issue_title),
+        urlencoding::encode(&issue_body),
+    );
     let details = format!(
-        "EasyCopy\nVersion: {}\n\nIf you have an issue, click 'File an Issue'.",
+        "EasyCopy\nVersion: {}\n\nIf you have an issue, click 'File an Issue'. Diagnostics will be prefilled automatically.",
         version,
     );
 
@@ -150,7 +215,8 @@ fn show_developer_info_dialog(app: &AppHandle) {
         .blocking_show();
 
     if open_issues {
-        let _ = app.opener().open_url(issues_url, None::<String>);
+        log_event(app, "Developer Info: opening prefilled issue URL");
+        let _ = app.opener().open_url(prefilled_issue_url, None::<String>);
     }
 }
 
@@ -203,6 +269,7 @@ fn add_link(name: String, url: String, state: State<AppState>, app_handle: AppHa
     
     let file_path = get_links_file_path(&app_handle);
     save_links_to_file(&file_path, &links)?;
+    log_event(&app_handle, "Added link item");
     
     refresh_tray_menu(&app_handle, &links_snapshot, show_developer_info);
     
@@ -218,6 +285,7 @@ fn update_link(id: String, name: String, url: String, state: State<AppState>, ap
     
     let file_path = get_links_file_path(&app_handle);
     save_links_to_file(&file_path, &links)?;
+    log_event(&app_handle, &format!("Updated link item id={}", id));
     
     refresh_tray_menu(&app_handle, &links_snapshot, show_developer_info);
     
@@ -233,6 +301,7 @@ fn delete_link(id: String, state: State<AppState>, app_handle: AppHandle) -> Res
     
     let file_path = get_links_file_path(&app_handle);
     save_links_to_file(&file_path, &links)?;
+    log_event(&app_handle, &format!("Deleted link item id={}", id));
     
     refresh_tray_menu(&app_handle, &links_snapshot, show_developer_info);
     
@@ -242,12 +311,14 @@ fn delete_link(id: String, state: State<AppState>, app_handle: AppHandle) -> Res
 #[tauri::command]
 fn reorder_links(ordered_ids: Vec<String>, state: State<AppState>, app_handle: AppHandle) -> Result<Vec<LinkItem>, String> {
     let mut links = state.links.lock().unwrap();
+    let reordered_count = ordered_ids.len();
     *links = reorder_link_items(links.clone(), ordered_ids);
     let links_snapshot = links.clone();
     let show_developer_info = state.dev_menu.lock().unwrap().visible;
     
     let file_path = get_links_file_path(&app_handle);
     save_links_to_file(&file_path, &links)?;
+    log_event(&app_handle, &format!("Reordered links count={}", reordered_count));
     
     refresh_tray_menu(&app_handle, &links_snapshot, show_developer_info);
     
@@ -263,23 +334,29 @@ fn copy_to_clipboard(text: String, app_handle: AppHandle) -> Result<bool, String
 }
 
 async fn check_for_updates_once(app: AppHandle) {
+    log_event(&app, "Updater check started");
     let update = match app.updater_builder().build() {
         Ok(builder) => match builder.check().await {
             Ok(update) => update,
             Err(err) => {
                 eprintln!("Updater check failed: {err}");
+                log_event(&app, &format!("Updater check failed: {}", err));
                 return;
             }
         },
         Err(err) => {
             eprintln!("Updater initialization failed: {err}");
+            log_event(&app, &format!("Updater init failed: {}", err));
             return;
         }
     };
 
     let Some(update) = update else {
+        log_event(&app, "Updater check: no update available");
         return;
     };
+
+    log_event(&app, &format!("Updater check: update found version={}", update.version));
 
     let should_install = app
         .dialog()
@@ -296,13 +373,17 @@ async fn check_for_updates_once(app: AppHandle) {
         .blocking_show();
 
     if !should_install {
+        log_event(&app, "Updater prompt dismissed by user");
         return;
     }
 
     if let Err(err) = update.download_and_install(|_, _| {}, || {}).await {
         eprintln!("Updater installation failed: {err}");
+        log_event(&app, &format!("Updater install failed: {}", err));
         return;
     }
+
+    log_event(&app, "Updater installed successfully; restarting app");
 
     let _ = app
         .dialog()
@@ -348,6 +429,7 @@ pub fn run() {
             };
             
             app.manage(state);
+            log_event(&app_handle, &format!("App started version={}", app.package_info().version));
 
             if let Err(err) = app_handle.global_shortcut().on_shortcut(
                 DEVELOPER_SHORTCUT,
@@ -366,9 +448,11 @@ pub fn run() {
 
                     let links = state.links.lock().unwrap().clone();
                     refresh_tray_menu(app, &links, is_visible);
+                    log_event(app, &format!("Developer Info menu visibility changed: {}", is_visible));
                 },
             ) {
                 eprintln!("Failed to register developer shortcut: {err}");
+                log_event(&app_handle, &format!("Failed to register developer shortcut: {}", err));
             }
             
             // Build tray menu
@@ -389,15 +473,18 @@ pub fn run() {
                 .on_menu_event(move |app, event| {
                     match event.id.as_ref() {
                         "open" => {
+                            log_event(app, "Tray action: open window");
                             let tray_rect = app
                                 .tray_by_id("main")
                                 .and_then(|tray| tray.rect().ok().flatten());
                             open_window_attached_to_tray(app, tray_rect);
                         }
                         "quit" => {
+                            log_event(app, "Tray action: quit");
                             app.exit(0);
                         }
                         "developer_info" => {
+                            log_event(app, "Tray action: developer info dialog");
                             show_developer_info_dialog(app);
                         }
                         id if id.starts_with("link_") => {
