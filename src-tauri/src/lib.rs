@@ -3,13 +3,32 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
+use std::time::Duration;
 use tauri::{AppHandle, Manager, State, Wry};
 use tauri::path::BaseDirectory;
 use tauri::menu::MenuBuilder;
-use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+use tauri_plugin_opener::OpenerExt;
 use tauri_plugin_updater::UpdaterExt;
 use uuid::Uuid;
+
+const UPDATE_CHECK_INTERVAL: Duration = Duration::from_secs(3 * 60 * 60);
+const DEVELOPER_SHORTCUT: &str = "CommandOrControl+Alt+Shift+D";
+
+#[derive(Debug, Clone)]
+struct DevMenuState {
+    visible: bool,
+}
+
+impl DevMenuState {
+    fn new() -> Self {
+        Self {
+            visible: false,
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 struct LinkItem {
@@ -20,6 +39,7 @@ struct LinkItem {
 
 struct AppState {
     links: Mutex<Vec<LinkItem>>,
+    dev_menu: Mutex<DevMenuState>,
 }
 
 fn get_links_file_path(app_handle: &AppHandle) -> PathBuf {
@@ -80,7 +100,7 @@ fn reorder_link_items(links: Vec<LinkItem>, ordered_ids: Vec<String>) -> Vec<Lin
     reordered
 }
 
-fn build_tray_menu(app: &AppHandle, links: &[LinkItem]) -> Result<tauri::menu::Menu<Wry>, tauri::Error> {
+fn build_tray_menu(app: &AppHandle, links: &[LinkItem], show_developer_info: bool) -> Result<tauri::menu::Menu<Wry>, tauri::Error> {
     let mut builder = MenuBuilder::new(app)
         .text("open", "Add/Edit Links")
         .separator();
@@ -93,9 +113,45 @@ fn build_tray_menu(app: &AppHandle, links: &[LinkItem]) -> Result<tauri::menu::M
         }
     }
 
+    if show_developer_info {
+        builder = builder.separator().text("developer_info", "Developer Info");
+    }
+
     builder = builder.separator().text("quit", "Quit EasyCopy");
 
     builder.build()
+}
+
+fn refresh_tray_menu(app: &AppHandle, links: &[LinkItem], show_developer_info: bool) {
+    if let Some(tray) = app.tray_by_id("main") {
+        if let Ok(menu) = build_tray_menu(app, links, show_developer_info) {
+            tray.set_menu(Some(menu)).ok();
+        }
+    }
+}
+
+fn show_developer_info_dialog(app: &AppHandle) {
+    let version = app.package_info().version.to_string();
+    let issues_url = "https://github.com/colinfran/easy-copy/issues";
+    let details = format!(
+        "EasyCopy\nVersion: {}\n\nIf you have an issue, click 'File an Issue'.",
+        version,
+    );
+
+    let open_issues = app
+        .dialog()
+        .message(details)
+        .title("Developer Info")
+        .kind(MessageDialogKind::Info)
+        .buttons(MessageDialogButtons::OkCancelCustom(
+            "File an Issue".to_string(),
+            "Done".to_string(),
+        ))
+        .blocking_show();
+
+    if open_issues {
+        let _ = app.opener().open_url(issues_url, None::<String>);
+    }
 }
 
 fn open_window_attached_to_tray(app: &AppHandle, tray_rect: Option<tauri::Rect>) {
@@ -142,15 +198,13 @@ fn list_links(state: State<AppState>) -> Vec<LinkItem> {
 fn add_link(name: String, url: String, state: State<AppState>, app_handle: AppHandle) -> Result<Vec<LinkItem>, String> {
     let mut links = state.links.lock().unwrap();
     *links = add_link_item(links.clone(), name, url);
+    let links_snapshot = links.clone();
+    let show_developer_info = state.dev_menu.lock().unwrap().visible;
     
     let file_path = get_links_file_path(&app_handle);
     save_links_to_file(&file_path, &links)?;
     
-    if let Some(tray) = app_handle.tray_by_id("main") {
-        if let Ok(menu) = build_tray_menu(&app_handle, &links) {
-            tray.set_menu(Some(menu)).ok();
-        }
-    }
+    refresh_tray_menu(&app_handle, &links_snapshot, show_developer_info);
     
     Ok(links.clone())
 }
@@ -159,15 +213,13 @@ fn add_link(name: String, url: String, state: State<AppState>, app_handle: AppHa
 fn update_link(id: String, name: String, url: String, state: State<AppState>, app_handle: AppHandle) -> Result<Vec<LinkItem>, String> {
     let mut links = state.links.lock().unwrap();
     *links = update_link_item(links.clone(), &id, name, url);
+    let links_snapshot = links.clone();
+    let show_developer_info = state.dev_menu.lock().unwrap().visible;
     
     let file_path = get_links_file_path(&app_handle);
     save_links_to_file(&file_path, &links)?;
     
-    if let Some(tray) = app_handle.tray_by_id("main") {
-        if let Ok(menu) = build_tray_menu(&app_handle, &links) {
-            tray.set_menu(Some(menu)).ok();
-        }
-    }
+    refresh_tray_menu(&app_handle, &links_snapshot, show_developer_info);
     
     Ok(links.clone())
 }
@@ -176,15 +228,13 @@ fn update_link(id: String, name: String, url: String, state: State<AppState>, ap
 fn delete_link(id: String, state: State<AppState>, app_handle: AppHandle) -> Result<Vec<LinkItem>, String> {
     let mut links = state.links.lock().unwrap();
     *links = delete_link_item(links.clone(), &id);
+    let links_snapshot = links.clone();
+    let show_developer_info = state.dev_menu.lock().unwrap().visible;
     
     let file_path = get_links_file_path(&app_handle);
     save_links_to_file(&file_path, &links)?;
     
-    if let Some(tray) = app_handle.tray_by_id("main") {
-        if let Ok(menu) = build_tray_menu(&app_handle, &links) {
-            tray.set_menu(Some(menu)).ok();
-        }
-    }
+    refresh_tray_menu(&app_handle, &links_snapshot, show_developer_info);
     
     Ok(links.clone())
 }
@@ -193,15 +243,13 @@ fn delete_link(id: String, state: State<AppState>, app_handle: AppHandle) -> Res
 fn reorder_links(ordered_ids: Vec<String>, state: State<AppState>, app_handle: AppHandle) -> Result<Vec<LinkItem>, String> {
     let mut links = state.links.lock().unwrap();
     *links = reorder_link_items(links.clone(), ordered_ids);
+    let links_snapshot = links.clone();
+    let show_developer_info = state.dev_menu.lock().unwrap().visible;
     
     let file_path = get_links_file_path(&app_handle);
     save_links_to_file(&file_path, &links)?;
     
-    if let Some(tray) = app_handle.tray_by_id("main") {
-        if let Ok(menu) = build_tray_menu(&app_handle, &links) {
-            tray.set_menu(Some(menu)).ok();
-        }
-    }
+    refresh_tray_menu(&app_handle, &links_snapshot, show_developer_info);
     
     Ok(links.clone())
 }
@@ -214,7 +262,7 @@ fn copy_to_clipboard(text: String, app_handle: AppHandle) -> Result<bool, String
     Ok(true)
 }
 
-async fn check_for_updates_on_startup(app: AppHandle) {
+async fn check_for_updates_once(app: AppHandle) {
     let update = match app.updater_builder().build() {
         Ok(builder) => match builder.check().await {
             Ok(update) => update,
@@ -258,17 +306,20 @@ async fn check_for_updates_on_startup(app: AppHandle) {
 
     let _ = app
         .dialog()
-        .message("Update installed. Please reopen EasyCopy to finish applying the update.")
+        .message("Update installed. EasyCopy will restart now to finish applying it.")
         .title("EasyCopy Updated")
         .kind(MessageDialogKind::Info)
         .buttons(MessageDialogButtons::Ok)
         .blocking_show();
+
+    app.restart();
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -293,12 +344,35 @@ pub fn run() {
             
             let state = AppState {
                 links: Mutex::new(links.clone()),
+                dev_menu: Mutex::new(DevMenuState::new()),
             };
             
             app.manage(state);
+
+            if let Err(err) = app_handle.global_shortcut().on_shortcut(
+                DEVELOPER_SHORTCUT,
+                |app, _shortcut, event| {
+                    if event.state != ShortcutState::Pressed {
+                        return;
+                    }
+
+                    let state = app.state::<AppState>();
+
+                    let is_visible = {
+                        let mut dev_menu = state.dev_menu.lock().unwrap();
+                        dev_menu.visible = !dev_menu.visible;
+                        dev_menu.visible
+                    };
+
+                    let links = state.links.lock().unwrap().clone();
+                    refresh_tray_menu(app, &links, is_visible);
+                },
+            ) {
+                eprintln!("Failed to register developer shortcut: {err}");
+            }
             
             // Build tray menu
-            let menu = build_tray_menu(&app_handle, &links)?;
+            let menu = build_tray_menu(&app_handle, &links, false)?;
             
             let tray_icon = app.path().resolve("icons/icon.png", BaseDirectory::Resource)
                 .ok()
@@ -323,6 +397,9 @@ pub fn run() {
                         "quit" => {
                             app.exit(0);
                         }
+                        "developer_info" => {
+                            show_developer_info_dialog(app);
+                        }
                         id if id.starts_with("link_") => {
                             let state = app.state::<AppState>();
                             let links = state.links.lock().unwrap();
@@ -343,10 +420,11 @@ pub fn run() {
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click {
                         button,
+                        button_state,
                         ..
                     } = event
                     {
-                        if button == MouseButton::Left {
+                        if button == MouseButton::Left && button_state == MouseButtonState::Up {
                             let app = tray.app_handle();
                             if let Some(window) = app.get_webview_window("main") {
                                 if window.is_visible().unwrap_or(false) {
@@ -359,8 +437,9 @@ pub fn run() {
                 .build(app)?;
 
             let updater_app = app_handle.clone();
-            tauri::async_runtime::spawn(async move {
-                check_for_updates_on_startup(updater_app).await;
+            tauri::async_runtime::spawn_blocking(move || loop {
+                tauri::async_runtime::block_on(check_for_updates_once(updater_app.clone()));
+                std::thread::sleep(UPDATE_CHECK_INTERVAL);
             });
             
             Ok(())
