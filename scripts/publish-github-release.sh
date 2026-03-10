@@ -18,7 +18,32 @@ TITLE="${RELEASE_TITLE:-EasyCopy v$VERSION}"
 if [ -n "${RELEASE_NOTES:-}" ]; then
   NOTES="$RELEASE_NOTES"
 else
-  PREVIOUS_TAG="$(git tag --sort=-v:refname | grep -v "^$TAG$" | head -n 1 || true)"
+  PREVIOUS_TAG="$(node -e '
+const { execSync } = require("node:child_process");
+
+const currentTag = process.argv[1];
+const parse = (tag) => {
+  const match = tag.match(/^v?(\d+)\.(\d+)\.(\d+)$/);
+  if (!match) return null;
+  return [Number(match[1]), Number(match[2]), Number(match[3])];
+};
+const cmp = (a, b) => (a[0] - b[0]) || (a[1] - b[1]) || (a[2] - b[2]);
+
+const currentVersion = parse(currentTag);
+if (!currentVersion) process.exit(0);
+
+const tags = execSync("git tag --list", { encoding: "utf8" })
+  .split(/\r?\n/)
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const previous = tags
+  .map((tag) => ({ tag, version: parse(tag) }))
+  .filter((item) => item.version && item.tag !== currentTag && cmp(item.version, currentVersion) < 0)
+  .sort((a, b) => cmp(b.version, a.version))[0];
+
+if (previous) process.stdout.write(previous.tag);
+' "$TAG")"
 
   if [ -n "$PREVIOUS_TAG" ]; then
     CHANGE_LINES="$(git log --no-merges --pretty='- %s (%h)' "$PREVIOUS_TAG..HEAD" | head -n 30 || true)"
@@ -29,9 +54,13 @@ else
   if [ -z "$CHANGE_LINES" ]; then
     NOTES="No code changes detected in git history for this release."
   elif [ -n "$PREVIOUS_TAG" ]; then
-    NOTES="What's changed since $PREVIOUS_TAG:\n\n$CHANGE_LINES"
+    NOTES="What's changed since $PREVIOUS_TAG:
+
+$CHANGE_LINES"
   else
-    NOTES="What's changed:\n\n$CHANGE_LINES"
+    NOTES="What's changed:
+
+$CHANGE_LINES"
   fi
 fi
 
