@@ -7,6 +7,8 @@ use tauri::{AppHandle, Manager, State, Wry};
 use tauri::path::BaseDirectory;
 use tauri::menu::MenuBuilder;
 use tauri::tray::{MouseButton, TrayIconBuilder, TrayIconEvent};
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
+use tauri_plugin_updater::UpdaterExt;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -212,9 +214,61 @@ fn copy_to_clipboard(text: String, app_handle: AppHandle) -> Result<bool, String
     Ok(true)
 }
 
+async fn check_for_updates_on_startup(app: AppHandle) {
+    let update = match app.updater_builder().build() {
+        Ok(builder) => match builder.check().await {
+            Ok(update) => update,
+            Err(err) => {
+                eprintln!("Updater check failed: {err}");
+                return;
+            }
+        },
+        Err(err) => {
+            eprintln!("Updater initialization failed: {err}");
+            return;
+        }
+    };
+
+    let Some(update) = update else {
+        return;
+    };
+
+    let should_install = app
+        .dialog()
+        .message(format!(
+            "EasyCopy {} is available. Install now?",
+            update.version
+        ))
+        .title("EasyCopy Update Available")
+        .kind(MessageDialogKind::Info)
+        .buttons(MessageDialogButtons::OkCancelCustom(
+            "Install now".to_string(),
+            "Later".to_string(),
+        ))
+        .blocking_show();
+
+    if !should_install {
+        return;
+    }
+
+    if let Err(err) = update.download_and_install(|_, _| {}, || {}).await {
+        eprintln!("Updater installation failed: {err}");
+        return;
+    }
+
+    let _ = app
+        .dialog()
+        .message("Update installed. Please reopen EasyCopy to finish applying the update.")
+        .title("EasyCopy Updated")
+        .kind(MessageDialogKind::Info)
+        .buttons(MessageDialogButtons::Ok)
+        .blocking_show();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -303,6 +357,11 @@ pub fn run() {
                     }
                 })
                 .build(app)?;
+
+            let updater_app = app_handle.clone();
+            tauri::async_runtime::spawn(async move {
+                check_for_updates_on_startup(updater_app).await;
+            });
             
             Ok(())
         })

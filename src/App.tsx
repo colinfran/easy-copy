@@ -1,6 +1,4 @@
-import { type JSX, useEffect } from "react"
-import { relaunch } from "@tauri-apps/plugin-process"
-import { check } from "@tauri-apps/plugin-updater"
+import { type JSX } from "react"
 import { AddLinkForm } from "./components/AddLinkForm"
 import { LinksList } from "./components/LinksList"
 import { useLinks } from "./hooks/useLinks"
@@ -19,37 +17,6 @@ export const App = (): JSX.Element => {
     setEditState,
     clearError,
   } = useLinks()
-
-  useEffect(() => {
-    if (!import.meta.env.PROD) {
-      return
-    }
-
-    const checkForUpdates = async (): Promise<void> => {
-      try {
-        const update = await check()
-        if (!update) {
-          return
-        }
-
-        const notes = update.body ? `\n\n${update.body}` : ""
-        const shouldInstall = window.confirm(
-          `A new EasyCopy update (${update.version}) is available. Install now?${notes}`,
-        )
-
-        if (!shouldInstall) {
-          return
-        }
-
-        await update.downloadAndInstall()
-        await relaunch()
-      } catch (err) {
-        console.error("Updater check failed", err)
-      }
-    }
-
-    void checkForUpdates()
-  }, [])
 
   return (
     <main className="h-screen overflow-hidden bg-slate-100 px-4 py-4 text-slate-900 dark:bg-zinc-900 dark:text-zinc-100">

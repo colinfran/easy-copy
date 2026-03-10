@@ -2,7 +2,7 @@
   "name": "easy-copy",
   "productName": "EasyCopy",
   "private": true,
-  "version": "1.0.2",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -21,9 +21,10 @@
     "preflight:mac": "sh scripts/preflight-mac-signing.sh",
     "notarize:mac": "sh scripts/notarize-dmg.sh",
     "release:version": "sh scripts/bump-version.sh",
+    "release:commit": "sh scripts/commit-release-version.sh",
     "release:mac": "npm run tauri:build:mac",
     "release:github": "sh scripts/publish-github-release.sh",
-    "release:all": "npm run release:version && npm run preflight:mac && npm run release:mac && npm run release:github",
+    "release:all": "npm run release:version && npm run release:commit && npm run preflight:mac && npm run release:mac && npm run release:github",
     "release:all:minor": "RELEASE_BUMP=minor npm run release:all",
     "release:all:major": "RELEASE_BUMP=major npm run release:all"
   },
