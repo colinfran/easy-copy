@@ -46,7 +46,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDc2NkZCQ0Q5NTI3MUMwODcKUldTSHdIRlMyYnh2ZGtxYlFIMlJlYkthRk91NlZ1YUpjbDB6S1EwN0JiWm5ZbkZ5MVh3SUpQeGcK",
+      "pubkey": "ZFc1MGNuVnpkR1ZrSUdOdmJXMWxiblE2SUcxcGJtbHphV2R1SUhCMVlteHBZeUJyWlhrNklEYzJOa1pDUTBRNU5USTNNVU13T0RjS1VsZFRTSGRJUmxNeVluaDJaR3R4WWxGSU1sSmxZa3RoUms5MU5sWjFZVXBqYkRCNlMxRXdOMEppV201WmJrWjVNVmgzU1VwUWVHY0s=",
       "endpoints": [
         "https://github.com/colinfran/easy-copy/releases/latest/download/latest.json"
       ]
